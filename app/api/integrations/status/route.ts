@@ -31,7 +31,7 @@ export async function GET(request: Request) {
 
     const connected: string[] = items
       .filter((c: any) => c.status === 'ACTIVE')
-      .map((c: any) => String(c.toolkitSlug ?? c.appName ?? '').toLowerCase())
+      .map((c: any) => String(c.toolkit?.slug ?? c.toolkitSlug ?? c.appName ?? '').toLowerCase())
       .filter(Boolean)
 
     console.log(`[status] entity_id=${entity_id} connected=`, connected)
