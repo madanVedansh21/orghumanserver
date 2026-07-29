@@ -29,10 +29,20 @@ export async function POST(request: Request) {
 
     const composio = getClient()
 
-    // initiate(appName: string, userId: string, options?)
-    const connectionRequest = await composio.connectedAccounts.initiate(
-      app.toLowerCase(),
+    // 1. Resolve app name to an actual AuthConfig ID
+    const authConfigs = await composio.authConfigs.list()
+    const config = authConfigs.items.find(c => c.toolkit?.slug === app.toLowerCase())
+    if (!config) {
+      return NextResponse.json(
+        { error: `Auth config not found for '${app}'. Please enable it in the Composio Dashboard.` },
+        { status: 404 }
+      )
+    }
+
+    // 2. Link the entity to the auth config (v0.14.0 signature)
+    const connectionRequest = await composio.connectedAccounts.link(
       entity_id,
+      config.id,
     )
 
     const url =
