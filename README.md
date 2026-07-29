@@ -1,27 +1,27 @@
 # OrgHumans Backend
 
-Proxy server that owns the Composio API key so clients never see or input it.
+Next.js API server that proxies Composio — the API key lives here, clients never see it.
 
 ## Endpoints
 
 | Method | Path | Description |
 |--------|------|-------------|
-| `GET` | `/health` | Liveness probe |
-| `POST` | `/integrations/connect` | Get OAuth URL for an app |
-| `GET` | `/integrations/status` | List connected apps for an entity |
+| `GET` | `/api/health` | Liveness probe |
+| `POST` | `/api/integrations/connect` | Get OAuth URL for an app |
+| `GET` | `/api/integrations/status` | List connected apps for a user |
 
-### POST `/integrations/connect`
+### POST `/api/integrations/connect`
 ```json
 // Request body
 { "entity_id": "7f9cb650-b5cc-406c-b1db-a94ea10c39e1", "app": "reddit" }
 
 // Response
-{ "url": "https://accounts.google.com/o/oauth2/..." }
+{ "url": "https://www.reddit.com/api/v1/authorize?..." }
 ```
 
-### GET `/integrations/status`
+### GET `/api/integrations/status`
 ```
-GET /integrations/status?entity_id=7f9cb650-b5cc-406c-b1db-a94ea10c39e1
+GET /api/integrations/status?entity_id=7f9cb650-b5cc-406c-b1db-a94ea10c39e1
 ```
 ```json
 { "connected": ["reddit", "gmail"] }
@@ -29,29 +29,29 @@ GET /integrations/status?entity_id=7f9cb650-b5cc-406c-b1db-a94ea10c39e1
 
 ---
 
-## Deploy to Railway
+## Deploy to Vercel (recommended for Next.js)
 
-1. Go to [railway.app](https://railway.app) → **New Project** → **Deploy from GitHub repo**
-2. Point it at this repo and set the **root directory** to `backend/`
-3. Add the environment variable:
+1. Push this repo to GitHub
+2. Go to [vercel.com](https://vercel.com) → **New Project** → import repo
+3. Set **Root Directory** to `backend`
+4. Add environment variable:
    ```
-   COMPOSIO_API_KEY=your_composio_project_api_key
+   COMPOSIO_API_KEY = your_composio_api_key_from_app_composio_dev
    ```
-4. Railway will auto-detect Python + Nixpacks, install `requirements.txt`, and start with the `Procfile`
-5. Copy the generated URL (e.g. `https://orghumans-backend.up.railway.app`)
+5. Deploy → copy the URL (e.g. `https://orghumans-backend.vercel.app`)
 
 ---
 
-## Wire up the URL
+## Wire up the URL in the Electron app
 
-In `apps/desktop/electron/orghumans-ipc.ts`, line 32:
+In `apps/desktop/electron/orghumans-ipc.ts` line 32:
 ```ts
-const BACKEND_URL = 'https://orghumans-backend.up.railway.app'  // ← paste here
+const BACKEND_URL = 'https://orghumans-backend.vercel.app'
 ```
 
-In `tools/mcp_tool.py`, around line 4470:
+In `tools/mcp_tool.py` around line 4470:
 ```python
-_COMPOSIO_BACKEND_API_KEY = "your_composio_project_api_key"  # ← paste your key here
+_COMPOSIO_BACKEND_API_KEY = "your_composio_api_key"
 ```
 
 ---
@@ -60,13 +60,22 @@ _COMPOSIO_BACKEND_API_KEY = "your_composio_project_api_key"  # ← paste your ke
 
 ```bash
 cd backend
-pip install -r requirements.txt
-COMPOSIO_API_KEY=your_key uvicorn main:app --reload --port 8000
+cp .env.example .env.local
+# Edit .env.local and add your COMPOSIO_API_KEY
+npm run dev
+# Server runs at http://localhost:3000
 ```
 
 Test:
 ```bash
-curl -X POST http://localhost:8000/integrations/connect \
+# Health check
+curl http://localhost:3000/api/health
+
+# Initiate connection
+curl -X POST http://localhost:3000/api/integrations/connect \
   -H "Content-Type: application/json" \
-  -d '{"entity_id": "test-entity-123", "app": "reddit"}'
+  -d '{"entity_id": "test-user-123", "app": "reddit"}'
+
+# Check status
+curl "http://localhost:3000/api/integrations/status?entity_id=test-user-123"
 ```
