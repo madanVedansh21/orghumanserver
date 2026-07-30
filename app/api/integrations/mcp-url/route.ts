@@ -44,7 +44,12 @@ export async function POST(request: Request) {
       manuallyManageConnections: true,
     })
 
-    return NextResponse.json({ url: instance.url })
+    return NextResponse.json({
+      url: instance.url,
+      headers: {
+        'x-api-key': process.env.COMPOSIO_API_KEY!,
+      },
+    })
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : String(err)
     console.error('[mcp-url] error:', message)
